@@ -13,7 +13,10 @@ st.set_page_config(page_title="AI-Powered Cybersecurity Threat Detection", layou
 @st.cache_resource
 def load_detector():
     detector = CybersecurityThreatDetector()
-    detector.load_models()
+    try:
+        detector.load_models()
+    except Exception as e:
+        st.error(f"Error loading models: {e}")
     return detector
 
 detector = load_detector()
@@ -79,16 +82,19 @@ elif choice == "Phishing Detection":
         if not email_text.strip():
             st.error("Please enter email text.")
         else:
-            results = detector.detect_phishing([email_text])
-            if results:
-                res = results[0]
-                if 'error' in res:
-                    st.error(f"Error: {res['error']}")
+            try:
+                results = detector.detect_phishing([email_text])
+                if results:
+                    res = results[0]
+                    if 'error' in res:
+                        st.error(f"Error: {res['error']}")
+                    else:
+                        status = "PHISHING" if res['is_phishing'] else "LEGITIMATE"
+                        st.write(f"Email is classified as: {status} (Confidence: {res['phishing_probability']*100:.1f}%)")
                 else:
-                    status = "PHISHING" if res['is_phishing'] else "LEGITIMATE"
-                    st.write(f"Email is classified as: {status} (Confidence: {res['phishing_probability']*100:.1f}%)")
-            else:
-                st.warning("No results returned. Ensure models are loaded and input is correct.")
+                    st.warning("No results returned. Ensure models are loaded and input is correct.")
+            except Exception as e:
+                st.error(f"Error during phishing detection: {e}")
 
 elif choice == "Dashboard":
     st.header("Dashboard")
