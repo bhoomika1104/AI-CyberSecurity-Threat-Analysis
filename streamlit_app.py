@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import sys
+import tempfile
 
 # Add the parent directory to sys.path to import main.py
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -29,6 +30,35 @@ choice = st.sidebar.selectbox("Select Functionality", menu)
 if choice == "Home":
     st.write("Welcome to the AI-Powered Cybersecurity Threat Detection System.")
     st.write("Use the sidebar to navigate between different threat detection modules.")
+    st.subheader("Sample Inputs and Instructions")
+
+    st.markdown("""
+    ### Network Threat Detection
+    - Paste CSV data with columns: `bytes_sent, bytes_received, duration, port, protocol_type, service, flag, src_ip`
+    - Example:
+    ```
+    bytes_sent,bytes_received,duration,port,protocol_type,service,flag,src_ip
+    5000,8000,60,80,tcp,http,SF,192.168.1.1
+    10000,15000,120,443,tcp,https,SF,10.0.0.1
+    ```
+
+    ### Malware Detection
+    - Upload executable files (.exe) for malware detection.
+    - You can use the provided `sample_malware_test.exe` file in the project directory.
+
+    ### Phishing Detection
+    - Enter email text to check for phishing.
+    - Example:
+    ```
+    Dear user,
+
+    Your account has been compromised. Please click the link below to reset your password immediately:
+    http://fake-website.com/reset-password
+
+    Thank you,
+    Support Team
+    ```
+    """)
 
 elif choice == "Network Threat Detection":
     st.header("Network Threat Detection")
@@ -58,22 +88,18 @@ elif choice == "Malware Detection":
             st.error("Please upload at least one executable file.")
         else:
             results = []
-            for uploaded_file in uploaded_files:
-                with open(os.path.join("temp_uploads", uploaded_file.name), "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                results.append(detector.detect_malware([os.path.join("temp_uploads", uploaded_file.name)])[0])
-            for res in results:
-                if 'error' in res:
-                    st.error(f"File {res['file_path']}: {res['error']}")
-                else:
-                    status = "MALWARE" if res['is_malware'] else "BENIGN"
-                    st.write(f"File {res['file_path']}: {status} (Confidence: {res['malware_probability']*100:.1f}%)")
-            # Clean up temp files
-            for uploaded_file in uploaded_files:
-                try:
-                    os.remove(os.path.join("temp_uploads", uploaded_file.name))
-                except Exception:
-                    pass
+            with tempfile.TemporaryDirectory() as temp_dir:
+                for uploaded_file in uploaded_files:
+                    temp_file_path = os.path.join(temp_dir, uploaded_file.name)
+                    with open(temp_file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    results.append(detector.detect_malware([temp_file_path])[0])
+                for res in results:
+                    if 'error' in res:
+                        st.error(f"File {res['file_path']}: {res['error']}")
+                    else:
+                        status = "MALWARE" if res['is_malware'] else "BENIGN"
+                        st.write(f"File {res['file_path']}: {status} (Confidence: {res['malware_probability']*100:.1f}%)")
 
 elif choice == "Phishing Detection":
     st.header("Phishing Detection")
@@ -98,4 +124,14 @@ elif choice == "Phishing Detection":
 
 elif choice == "Dashboard":
     st.header("Dashboard")
-    st.write("Dashboard functionality can be implemented here.")
+    st.write("Summary of detection results will be shown here.")
+
+    # For demonstration, show dummy summary stats
+    st.subheader("Threat Detection Summary")
+    st.write("- Total network anomalies detected: 42")
+    st.write("- Total malware files scanned: 10")
+    st.write("- Total malware detected: 3")
+    st.write("- Total phishing emails analyzed: 5")
+    st.write("- Total phishing emails detected: 1")
+
+    st.write("You can extend this dashboard to show detailed analytics, charts, and trends.")
