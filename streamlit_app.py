@@ -36,13 +36,14 @@ elif choice == "Network Threat Detection":
             st.error("Please enter network CSV data.")
         else:
             try:
-                df = pd.read_csv(pd.compat.StringIO(csv_data))
+                from io import StringIO
+                df = pd.read_csv(StringIO(csv_data))
                 results = detector.detect_network_threats(df)
-                if results:
+                if results and isinstance(results, dict) and 'anomalies' in results and 'scores' in results:
                     st.success(f"Detected {results['num_anomalies']} anomalies out of {len(df)} records ({results['anomaly_percentage']:.2f}%).")
                     st.dataframe(pd.DataFrame({'Anomaly': results['anomalies'], 'Score': results['scores']}))
                 else:
-                    st.warning("No results returned. Ensure models are loaded and data is correct.")
+                    st.warning("No results returned or missing expected keys. Ensure models are loaded and data is correct.")
             except Exception as e:
                 st.error(f"Error processing network data: {e}")
 
