@@ -421,7 +421,11 @@ class CybersecurityThreatDetector:
             self.network_feature_columns = joblib.load(f"{directory}/network_feature_columns.pkl")
             self.malware_detector = joblib.load(f"{directory}/malware_detector.pkl")
             self.phishing_vectorizer = joblib.load(f"{directory}/phishing_vectorizer.pkl")
+            if self.phishing_vectorizer is None:
+                raise ValueError("Phishing vectorizer failed to load.")
             self.phishing_detector = joblib.load(f"{directory}/phishing_detector.pkl")
+            if self.phishing_detector is None:
+                raise ValueError("Phishing detector failed to load.")
             self.is_trained = True
             print("All models loaded successfully!")
         except Exception as e:
@@ -440,6 +444,9 @@ class CybersecurityThreatDetector:
         threat_ips = self.threat_feed.get_threat_data()
         if 'src_ip' in network_data.columns:
             processed_data['is_threat_ip'] = network_data['src_ip'].apply(lambda ip: ip in threat_ips)
+        # Remove 'is_threat_ip' before prediction to match training features
+        if 'is_threat_ip' in processed_data.columns:
+            processed_data = processed_data.drop(columns=['is_threat_ip'])
         anomalies, scores = detect_network_anomalies(
             self.network_autoencoder, self.network_isoforest, processed_data
         )
@@ -481,7 +488,9 @@ class CybersecurityThreatDetector:
         results = []
         for i, email in enumerate(emails):
             try:
+                print(f"Processing email {i}: {email[:30]}...")
                 processed_text = preprocess_email_text(email)
+                print(f"Processed text: {processed_text[:30]}...")
                 text_features = self.phishing_vectorizer.transform([processed_text])
                 phishing_prob = self.phishing_detector.predict_proba(text_features)[0, 1]
                 is_phishing = phishing_prob > 0.5
@@ -492,7 +501,9 @@ class CybersecurityThreatDetector:
                     'phishing_probability': phishing_prob,
                     'features': email_features
                 })
+                print(f"Email {i} phishing probability: {phishing_prob}")
             except Exception as e:
+                print(f"Error processing email {i}: {e}")
                 results.append({
                     'email_id': i,
                     'error': str(e)
