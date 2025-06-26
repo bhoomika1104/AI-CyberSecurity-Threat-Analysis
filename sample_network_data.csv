@@ -1,0 +1,6 @@
+bytes_sent,bytes_received,duration,port,protocol_type,service,flag
+5000,8000,60,80,tcp,http,SF
+5200,7800,55,443,tcp,https,SF
+4800,8200,65,22,tcp,ssh,SF
+100000,50000,600,80,tcp,http,REJ
+4500,7900,58,25,tcp,smtp,S0
